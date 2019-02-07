@@ -237,13 +237,13 @@ class IRSystem:
         sortedList = sorted(query, key=self.postingsSize)
         postings = self.get_posting(sortedList[0])
         for posting in postings:
-            currDocs.add(posting)
+            currDocs.add(posting) # add all the docs of smallest list
         for word in sortedList:
             if sortedList[0] != word: # if not the first word
                 postings = self.get_posting(word)
-                currSet = currDocs.copy()
+                currSet = currDocs.copy() 
                 for posting in postings:
-                    if posting in currSet:
+                    if posting in currSet: #
                         currSet.remove(posting)
                 for posting in currSet:
                     currDocs.remove(posting)
@@ -255,7 +255,14 @@ class IRSystem:
 
         return sorted(docs)   # sorted doesn't actually matter
 
-
+    def findIndicies(self, word, doc):
+        dictLists = self.inv_index[word]
+        listIndicies = []
+        if any(doc in d for d in dictLists):
+            indicies = next(d for i,d in enumerate(dictLists) if doc in d)
+            listIndicies = indicies[doc]
+        return listIndicies
+                
     def phrase_retrieve(self, query):
         """
         Given a query in the form of an ordered list of *stemmed* words, this 
@@ -274,8 +281,25 @@ class IRSystem:
         #       of unique words in the original document.
         # Right now this just returns all possible documents!
         docs = []
-        for d in range(len(self.titles)):
-            docs.append(d)
+
+        docsContainingQuery = self.boolean_retrieve(query)
+        # for each doc
+            #find index of first word
+                # make sure each consecutive word is index + 1
+        for doc in docsContainingQuery:
+            firstWord = query[0]
+            lastIndicies = set(self.findIndicies(firstWord, doc))
+            for i in range(len(query)):
+                if i != 0: #skip first word
+                    word = query[i]
+                    currIndicies = set(self.findIndicies(word, doc))
+                    validIndicies = set()
+                    for index in currIndicies:
+                        if (index-1) in lastIndicies:
+                            validIndicies.add(index)
+                    lastIndicies = validIndicies
+            if lastIndicies != set(): # if its not the empty set, ie still has valid indicies
+                docs.append(doc)
 
         # ------------------------------------------------------------------
 
