@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import division
+
 import json
 import math
 import os
@@ -202,7 +204,7 @@ class IRSystem:
         posting = []
         docs = self.inv_index[word]
         for d in docs:
-            docID = d.keys()[0]
+            docID = list(d.keys())[0]
             posting.append(docID)
         return posting
         # ------------------------------------------------------------------
@@ -283,9 +285,7 @@ class IRSystem:
         docs = []
 
         docsContainingQuery = self.boolean_retrieve(query)
-        # for each doc
-            #find index of first word
-                # make sure each consecutive word is index + 1
+
         for doc in docsContainingQuery:
             firstWord = query[0]
             lastIndicies = set(self.findIndicies(firstWord, doc))
@@ -318,11 +318,38 @@ class IRSystem:
         #       word actually occurs in the document.
         print("Calculating tf-idf...")
         self.tfidf = {}
+        printed = False
         for word in self.vocab:
             for d in range(len(self.docs)):
                 if word not in self.tfidf:
                     self.tfidf[word] = {}
-                self.tfidf[word][d] = 0.0
+                if word in self.docs[d]:
+                    count = len(self.findIndicies(word, d))
+                    numDocsWithWord = len(self.inv_index[word])
+                    x = len(self.docs)/numDocsWithWord
+                    term1 = (1+math.log10(count))
+                    term2 = (math.log10(x))
+                    term = term1*term2
+                    self.tfidf[word][d] = term
+                    if word == "separ" and d == 0:
+                        #print(len(self.docs))
+                        # print("d: " + str(d))
+                        # print("word " + word)
+                        # print("find indicies: ")
+                        # print(self.findIndicies(word, d))
+                        print("count " + str(count))
+                        # print("inv_index[word]")
+                        # print(self.inv_index[word])
+                        print("num docs with word: " + str(numDocsWithWord))
+                        print("x: " +  str(x))
+                        print("Term1: " + str(term1))
+                        print("term 2: " + str(term2))
+                        print(term)
+                    # print(self.tfidf)
+                    #printed = True
+
+        # (1+log10(count))*log10(60/docs with word)
+
 
         # ------------------------------------------------------------------
 
@@ -332,8 +359,9 @@ class IRSystem:
         # TODO: Return the tf-idf weigthing for the given word (string) and
         #       document index.
         tfidf = 0.0
+
         # ------------------------------------------------------------------
-        return tfidf
+        return self.tfidf[word][document]
 
 
     def get_tfidf_unstemmed(self, word, document):
