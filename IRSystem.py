@@ -179,7 +179,6 @@ class IRSystem:
                     indicies = {docID: [wordIndex]}
                     inv_index[word] = [indicies]
             pass
-        print(len(inv_index["and"]))
 
         self.inv_index = inv_index
 
@@ -218,6 +217,9 @@ class IRSystem:
         word = self.p.stem(word)
         return self.get_posting(word)
 
+    def postingsSize(self, word):
+        postings = self.get_posting(word)
+        return len(postings)
 
     def boolean_retrieve(self, query):
         """
@@ -231,8 +233,23 @@ class IRSystem:
         #       inverted index that you created in index().
         # Right now this just returns all the possible documents!
         docs = []
-        for d in range(len(self.titles)):
-            docs.append(d)
+        currDocs = set()
+        sortedList = sorted(query, key=self.postingsSize)
+        postings = self.get_posting(sortedList[0])
+        for posting in postings:
+            currDocs.add(posting)
+        for word in sortedList:
+            if sortedList[0] != word: # if not the first word
+                postings = self.get_posting(word)
+                currSet = currDocs.copy()
+                for posting in postings:
+                    if posting in currSet:
+                        currSet.remove(posting)
+                for posting in currSet:
+                    currDocs.remove(posting)
+
+        for posting in currDocs:
+            docs.append(posting)
 
         # ------------------------------------------------------------------
 
