@@ -331,26 +331,6 @@ class IRSystem:
                     term2 = (math.log10(x))
                     term = term1*term2
                     self.tfidf[word][d] = term
-                    if word == "separ" and d == 0:
-                        #print(len(self.docs))
-                        # print("d: " + str(d))
-                        # print("word " + word)
-                        # print("find indicies: ")
-                        # print(self.findIndicies(word, d))
-                        print("count " + str(count))
-                        # print("inv_index[word]")
-                        # print(self.inv_index[word])
-                        print("num docs with word: " + str(numDocsWithWord))
-                        print("x: " +  str(x))
-                        print("Term1: " + str(term1))
-                        print("term 2: " + str(term2))
-                        print(term)
-                    # print(self.tfidf)
-                    #printed = True
-
-        # (1+log10(count))*log10(60/docs with word)
-
-
         # ------------------------------------------------------------------
 
 
@@ -387,13 +367,38 @@ class IRSystem:
         # Right now, this code simply gets the score by taking the Jaccard
         # similarity between the query and every document.
         words_in_query = set()
+
         for word in query:
             words_in_query.add(word)
 
+        # make query vector, fill with log frequencies
+        queryVector = {}
+        for word in words_in_query:
+            wordCount = query.count(word)
+            queryVector[word] = float(1+math.log10(wordCount))
+
+        docVectors = {}
+        # make doc vector with just words in the query, tfidf scores
+        for d, words_in_doc in self.docs.items():
+            docVector = {}
+            docWords = words_in_query.intersection(words_in_doc)
+            for word in docWords: # for docVector
+                docVector[word] = self.get_tfidf(word, d)
+            length = 0 # find length of doc with total tfidf scores
+            for word in d: # for normalizaiton
+                tfidf = self.get_tfidf(word, d)
+                length += tfidf**2
+            length = length**(0.5)
+            # normalize original
+            docVector.update((word, float(val/length) for word, val in docVector.items())
+            docVectors[d] = docVector
+
+        # take dot product
+        # sort
         for d, words_in_doc in self.docs.items():
             scores[d] = len(words_in_query.intersection(words_in_doc)) \
                     / float(len(words_in_query.union(words_in_doc)))
-
+            
         # ------------------------------------------------------------------
 
         ranking = [idx for idx, sim in sorted(enumerate(scores),
