@@ -6,6 +6,7 @@ import math
 import os
 import re
 import sys
+import numpy
 
 from PorterStemmer import PorterStemmer
 
@@ -373,32 +374,32 @@ class IRSystem:
 
         # make query vector, fill with log frequencies
         queryVector = {}
-        for word in words_in_query:
+        for i in range(len(words_in_query)):
+            word = list(words_in_query)[i]
             wordCount = query.count(word)
             queryVector[word] = float(1+math.log10(wordCount))
 
-        docVectors = {}
         # make doc vector with just words in the query, tfidf scores
         for d, words_in_doc in self.docs.items():
             docVector = {}
             docWords = words_in_query.intersection(words_in_doc)
-            for word in docWords: # for docVector
+            for i in range(len(docWords)): # for docVector
+                word = list(docWords)[i]
                 docVector[word] = self.get_tfidf(word, d)
             length = 0 # find length of doc with total tfidf scores
-            for word in d: # for normalizaiton
+            for word in words_in_doc: # for normalizaiton
                 tfidf = self.get_tfidf(word, d)
                 length += tfidf**2
             length = length**(0.5)
             # normalize original
-            docVector.update((word, float(val/length) for word, val in docVector.items())
-            docVectors[d] = docVector
+            docVector = {word: v / length for word, v in docVector.items()}
+            # take dot product
+            scores[d] = 0
+            queryWords = queryVector.keys()
+            for queryWord in queryWords:
+                if queryWord in docVector:
+                    scores[d] += queryVector[queryWord]*docVector[queryWord]
 
-        # take dot product
-        # sort
-        for d, words_in_doc in self.docs.items():
-            scores[d] = len(words_in_query.intersection(words_in_doc)) \
-                    / float(len(words_in_query.union(words_in_doc)))
-            
         # ------------------------------------------------------------------
 
         ranking = [idx for idx, sim in sorted(enumerate(scores),
